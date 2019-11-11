@@ -2,55 +2,57 @@ package com.fs.springboot.controllers;
 
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.Base64;
 import java.util.List;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import com.ibm.cloud.sdk.core.http.HttpMediaType;
+import com.ibm.cloud.sdk.core.security.Authenticator;
+import com.ibm.cloud.sdk.core.security.IamAuthenticator;
+import com.ibm.watson.speech_to_text.v1.SpeechToText;
+import com.ibm.watson.speech_to_text.v1.model.RecognizeOptions;
+import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionResults;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
 
 import com.fs.springboot.models.SpeechPost;
-import com.ibm.watson.developer_cloud.http.HttpMediaType;
-import com.ibm.watson.developer_cloud.speech_to_text.v1.SpeechToText;
-import com.ibm.watson.developer_cloud.speech_to_text.v1.model.RecognizeOptions;
-import com.ibm.watson.developer_cloud.speech_to_text.v1.model.SpeechResults;
-import com.ibm.watson.developer_cloud.speech_to_text.v1.model.Transcript;
+import org.springframework.web.multipart.MultipartFile;
+
 @RestController
 @RequestMapping("/speech")
 public class SpeechTranscriber {
 	@ResponseBody
-	@RequestMapping("/transcribe")
-	public String transcribe(SpeechPost post) throws Exception{
-		String text = null;
-		
-		byte[] byteArray = Base64.getDecoder().decode(post.getAudio());
-		
-		File tempFile = File.createTempFile("speech-", ".flac",null);
-		FileOutputStream fos = new FileOutputStream(tempFile);
-		fos.write(byteArray);
-		fos.close();
-		
-		SpeechToText service = new SpeechToText();
-		service.setApiKey("_lxTv_FWxW5UGkWjVVGnxKvYpqM7VLrh4skQqMp7noR0");
-		service.setEndPoint("https://gateway-wdc.watsonplatform.net/speech-to-text/api");
-		
-		RecognizeOptions options = new RecognizeOptions.Builder()
-				.contentType(HttpMediaType.AUDIO_WAV)
-				.build();
-		
-		SpeechResults result = service.recognize(tempFile, options).execute();
-		
-		if (!result.getResults().isEmpty()) {
-			List<Transcript> transcripts = result.getResults();
-			
-			for(Transcript transcript: transcripts) {
-				text = transcript.getAlternatives().get(0).getTranscript();
-				break;
-			}
-			
+	@RequestMapping( value  = "/transcribe",  method = RequestMethod.POST,
+			consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+
+	public String transcribe(@RequestParam("file") MultipartFile file) throws Exception{
+
+		File convertFile = new File("/var/tmp/"+file.getOriginalFilename());
+		convertFile.createNewFile();
+		FileOutputStream fout = new FileOutputStream(convertFile);
+		fout.write(file.getBytes());
+		fout.close();
+
+		Authenticator authenticator = new IamAuthenticator("6bHdpbwdbEVx4EmuCIxQuRTV4KZtKL8UT8AjFgDkKFcm");
+		SpeechToText service = new SpeechToText(authenticator);
+
+		File audio = new File(convertFile.getPath());
+
+		RecognizeOptions options = null;
+		try {
+			options = new RecognizeOptions.Builder()
+					.audio(audio)
+					.contentType(HttpMediaType.AUDIO_WAV)
+					.build();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
 		}
-		return text;
+
+		SpeechRecognitionResults transcript = service.recognize(options).execute().getResult();
+		System.out.println(transcript);
+
+		return transcript.toString();
 	}
 	
 	
