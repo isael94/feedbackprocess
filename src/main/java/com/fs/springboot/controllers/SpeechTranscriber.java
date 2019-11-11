@@ -21,18 +21,28 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/speech")
+@CrossOrigin(origins = "*", methods= {RequestMethod.GET,RequestMethod.POST})
 public class SpeechTranscriber {
+
 	@ResponseBody
 	@RequestMapping( value  = "/transcribe",  method = RequestMethod.POST,
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 
-	public String transcribe(@RequestParam("file") MultipartFile file) throws Exception{
+	public String transcribe(@RequestParam("file") String file) throws Exception{
 
-		File convertFile = new File("/var/tmp/"+file.getOriginalFilename());
+		Base64.Decoder decoder = Base64.getDecoder();
+
+		file = String.valueOf(file);
+
+		byte[] decodedByte = decoder.decode(file.split(",")[1]);
+
+		File convertFile = new File("/var/tmp/audio.webm");
 		convertFile.createNewFile();
 		FileOutputStream fout = new FileOutputStream(convertFile);
-		fout.write(file.getBytes());
+		fout.write(decodedByte);
 		fout.close();
+
+
 
 		Authenticator authenticator = new IamAuthenticator("6bHdpbwdbEVx4EmuCIxQuRTV4KZtKL8UT8AjFgDkKFcm");
 		SpeechToText service = new SpeechToText(authenticator);
@@ -43,7 +53,8 @@ public class SpeechTranscriber {
 		try {
 			options = new RecognizeOptions.Builder()
 					.audio(audio)
-					.contentType(HttpMediaType.AUDIO_WAV)
+					.contentType(HttpMediaType.AUDIO_WEBM)
+					.model("es-MX_BroadbandModel")
 					.build();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -51,6 +62,7 @@ public class SpeechTranscriber {
 
 		SpeechRecognitionResults transcript = service.recognize(options).execute().getResult();
 		System.out.println(transcript);
+
 
 		return transcript.toString();
 	}
