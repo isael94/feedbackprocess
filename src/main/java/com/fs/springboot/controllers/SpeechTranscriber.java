@@ -1,28 +1,36 @@
 package com.fs.springboot.controllers;
 
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.util.Base64;
-import java.util.List;
-
+import com.fs.springboot.services.ToneAnalyzerService;
 import com.ibm.cloud.sdk.core.http.HttpMediaType;
 import com.ibm.cloud.sdk.core.security.Authenticator;
 import com.ibm.cloud.sdk.core.security.IamAuthenticator;
 import com.ibm.watson.speech_to_text.v1.SpeechToText;
 import com.ibm.watson.speech_to_text.v1.model.RecognizeOptions;
 import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionResults;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import com.fs.springboot.models.SpeechPost;
-import org.springframework.web.multipart.MultipartFile;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.util.Base64;
 
 @RestController
 @RequestMapping("/speech")
 @CrossOrigin(origins = "*", methods= {RequestMethod.GET,RequestMethod.POST})
 public class SpeechTranscriber {
+
+	private final Authenticator authenticator = new IamAuthenticator("6bHdpbwdbEVx4EmuCIxQuRTV4KZtKL8UT8AjFgDkKFcm");
+
+	private  final  ToneAnalyzerService toneAnalyzerService;
+
+	@Autowired
+	public SpeechTranscriber(ToneAnalyzerService toneAnalyzerService){
+		this.toneAnalyzerService = toneAnalyzerService;
+	}
+
 
 	@ResponseBody
 	@RequestMapping( value  = "/transcribe",  method = RequestMethod.POST,
@@ -42,9 +50,6 @@ public class SpeechTranscriber {
 		fout.write(decodedByte);
 		fout.close();
 
-
-
-		Authenticator authenticator = new IamAuthenticator("6bHdpbwdbEVx4EmuCIxQuRTV4KZtKL8UT8AjFgDkKFcm");
 		SpeechToText service = new SpeechToText(authenticator);
 
 		File audio = new File(convertFile.getPath());
@@ -62,7 +67,6 @@ public class SpeechTranscriber {
 
 		SpeechRecognitionResults transcript = service.recognize(options).execute().getResult();
 		System.out.println(transcript);
-
 
 		return transcript.toString();
 	}
