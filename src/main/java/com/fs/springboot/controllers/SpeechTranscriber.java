@@ -1,14 +1,12 @@
 package com.fs.springboot.controllers;
 
 
-import com.fs.springboot.services.ToneAnalyzerService;
 import com.ibm.cloud.sdk.core.http.HttpMediaType;
 import com.ibm.cloud.sdk.core.security.Authenticator;
 import com.ibm.cloud.sdk.core.security.IamAuthenticator;
 import com.ibm.watson.speech_to_text.v1.SpeechToText;
 import com.ibm.watson.speech_to_text.v1.model.RecognizeOptions;
 import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionResults;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,13 +21,6 @@ import java.util.Base64;
 public class SpeechTranscriber {
 
 	private final Authenticator authenticator = new IamAuthenticator("6bHdpbwdbEVx4EmuCIxQuRTV4KZtKL8UT8AjFgDkKFcm");
-
-	private  final  ToneAnalyzerService toneAnalyzerService;
-
-	@Autowired
-	public SpeechTranscriber(ToneAnalyzerService toneAnalyzerService){
-		this.toneAnalyzerService = toneAnalyzerService;
-	}
 
 
 	@ResponseBody
@@ -67,6 +58,7 @@ public class SpeechTranscriber {
 
 		SpeechRecognitionResults transcript = service.recognize(options).execute().getResult();
 		System.out.println(transcript);
+
 
 		return transcript.toString();
 	}
