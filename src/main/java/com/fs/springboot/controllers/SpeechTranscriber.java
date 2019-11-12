@@ -1,12 +1,16 @@
 package com.fs.springboot.controllers;
 
 
+import com.fs.springboot.services.ToneAnalyzerService;
 import com.ibm.cloud.sdk.core.http.HttpMediaType;
 import com.ibm.cloud.sdk.core.security.Authenticator;
 import com.ibm.cloud.sdk.core.security.IamAuthenticator;
 import com.ibm.watson.speech_to_text.v1.SpeechToText;
 import com.ibm.watson.speech_to_text.v1.model.RecognizeOptions;
+import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionAlternative;
+import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionResult;
 import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionResults;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +18,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.Base64;
+import java.util.List;
 
 @RestController
 @RequestMapping("/speech")
@@ -22,8 +27,14 @@ public class SpeechTranscriber {
 
 	private final Authenticator authenticator = new IamAuthenticator("6bHdpbwdbEVx4EmuCIxQuRTV4KZtKL8UT8AjFgDkKFcm");
 
+	private final ToneAnalyzerService toneAnalyzerService;
 
-	@ResponseBody
+	@Autowired
+    public SpeechTranscriber(ToneAnalyzerService toneAnalyzerService) {
+        this.toneAnalyzerService = toneAnalyzerService;
+    }
+
+    @ResponseBody
 	@RequestMapping( value  = "/transcribe",  method = RequestMethod.POST,
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 
@@ -50,7 +61,7 @@ public class SpeechTranscriber {
 			options = new RecognizeOptions.Builder()
 					.audio(audio)
 					.contentType(HttpMediaType.AUDIO_WEBM)
-					.model("es-MX_BroadbandModel")
+					.model("en-US_BroadbandModel") //spanish: es-MX_BroadbandModel
 					.build();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -58,6 +69,21 @@ public class SpeechTranscriber {
 
 		SpeechRecognitionResults transcript = service.recognize(options).execute().getResult();
 		System.out.println(transcript);
+
+        List<SpeechRecognitionResult> result = transcript.getResults();
+
+        String  toneText = "";
+
+        for (SpeechRecognitionResult i : result ) {
+
+            List<SpeechRecognitionAlternative> alternative = i.getAlternatives();
+            SpeechRecognitionAlternative first = alternative.stream().findFirst().get();
+            String transcriptText = first.getTranscript();
+            toneText = toneAnalyzerService.getToneOptions(transcriptText).toString();
+
+        }
+
+        System.out.printf(toneText);
 
 
 		return transcript.toString();
