@@ -1,6 +1,7 @@
 package com.fs.springboot.controllers;
 
 
+import com.fs.springboot.services.LogService;
 import com.fs.springboot.services.ToneAnalyzerService;
 import com.ibm.cloud.sdk.core.http.HttpMediaType;
 import com.ibm.cloud.sdk.core.security.Authenticator;
@@ -10,6 +11,7 @@ import com.ibm.watson.speech_to_text.v1.model.RecognizeOptions;
 import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionAlternative;
 import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionResult;
 import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionResults;
+import com.ibm.watson.tone_analyzer.v3.model.ToneAnalysis;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -26,12 +28,13 @@ import java.util.List;
 public class SpeechTranscriber {
 
 	private final Authenticator authenticator = new IamAuthenticator("6bHdpbwdbEVx4EmuCIxQuRTV4KZtKL8UT8AjFgDkKFcm");
-
 	private final ToneAnalyzerService toneAnalyzerService;
+	private final LogService logService;
 
 	@Autowired
-    public SpeechTranscriber(ToneAnalyzerService toneAnalyzerService) {
+    public SpeechTranscriber(ToneAnalyzerService toneAnalyzerService, LogService logService) {
         this.toneAnalyzerService = toneAnalyzerService;
+        this.logService = logService;
     }
 
     @ResponseBody
@@ -72,18 +75,21 @@ public class SpeechTranscriber {
 
         List<SpeechRecognitionResult> result = transcript.getResults();
 
-        String  toneText = "";
+        ToneAnalysis toneText = null;
 
         for (SpeechRecognitionResult i : result ) {
 
             List<SpeechRecognitionAlternative> alternative = i.getAlternatives();
             SpeechRecognitionAlternative first = alternative.stream().findFirst().get();
             String transcriptText = first.getTranscript();
-            toneText = toneAnalyzerService.getToneOptions(transcriptText).toString();
+            toneText = toneAnalyzerService.getToneOptions(transcriptText);
 
         }
 
-        System.out.printf(toneText);
+        System.out.printf(toneText.toString());
+
+        logService.setLogService(toneText.toString(), "200", ToneAnalyzerService.class.getName() );
+        logService.setLogService(result.toString(), "200", "SpeechTranscribir");
 
 
 		return transcript.toString();
