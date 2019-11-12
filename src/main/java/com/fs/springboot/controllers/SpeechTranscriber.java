@@ -1,12 +1,6 @@
 package com.fs.springboot.controllers;
 
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.util.Base64;
-import java.util.List;
-
 import com.ibm.cloud.sdk.core.http.HttpMediaType;
 import com.ibm.cloud.sdk.core.security.Authenticator;
 import com.ibm.cloud.sdk.core.security.IamAuthenticator;
@@ -16,16 +10,20 @@ import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionResults;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import com.fs.springboot.models.SpeechPost;
-import org.springframework.web.multipart.MultipartFile;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.util.Base64;
 
 @RestController
 @RequestMapping("/speech")
 @CrossOrigin(origins = "*", methods= {RequestMethod.GET,RequestMethod.POST})
 public class SpeechTranscriber {
 
+    public Authenticator authenticator = new IamAuthenticator("6bHdpbwdbEVx4EmuCIxQuRTV4KZtKL8UT8AjFgDkKFcm");
+
 	@ResponseBody
-	@RequestMapping( value  = "/transcribe",  method = RequestMethod.POST,
+	@RequestMapping(value  = "/transcribe",  method = RequestMethod.POST,
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 
 	public String transcribe(@RequestParam("file") String file) throws Exception{
@@ -42,9 +40,6 @@ public class SpeechTranscriber {
 		fout.write(decodedByte);
 		fout.close();
 
-
-
-		Authenticator authenticator = new IamAuthenticator("6bHdpbwdbEVx4EmuCIxQuRTV4KZtKL8UT8AjFgDkKFcm");
 		SpeechToText service = new SpeechToText(authenticator);
 
 		File audio = new File(convertFile.getPath());
@@ -66,7 +61,5 @@ public class SpeechTranscriber {
 
 		return transcript.toString();
 	}
-	
-	
 	
 }
