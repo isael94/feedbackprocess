@@ -1,6 +1,7 @@
 package com.fs.springboot.dao;
 
 import com.fs.springboot.services.LogService;
+import com.fs.springboot.services.SpeechTranscriberService;
 import com.fs.springboot.services.ToneAnalyzerService;
 import com.ibm.cloud.sdk.core.http.HttpMediaType;
 import com.ibm.cloud.sdk.core.security.Authenticator;
@@ -20,6 +21,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 
 @Repository("speechTranscriberDao")
 public class SpeechTranscriberAccessService implements SpeechTranscriberDao {
@@ -64,27 +68,64 @@ public class SpeechTranscriberAccessService implements SpeechTranscriberDao {
         }
 
         SpeechRecognitionResults transcript = service.recognize(options).execute().getResult();
-        System.out.println(transcript);
 
         List<SpeechRecognitionResult> result = transcript.getResults();
 
         ToneAnalysis toneText = null;
 
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
         for (SpeechRecognitionResult i : result ) {
 
             List<SpeechRecognitionAlternative> alternative = i.getAlternatives();
-            SpeechRecognitionAlternative first = alternative.stream().findFirst().get();
-            String transcriptText = first.getTranscript();
-            toneText = toneAnalyzerService.getToneOptions(transcriptText);
+
+            for (SpeechRecognitionAlternative  alt : alternative ) {
+
+                String transcriptText = alt.getTranscript();
+                toneText = toneAnalyzerService.getToneOptions(transcriptText);
+
+                AsyncLog task = new AsyncLog(logService, toneText.toString(), "200", ToneAnalyzerService.class.getName() );
+
+                FutureTask<String> futureTask = new FutureTask<>(task,
+                        "FutureTask is complete: " + task.hashCode());
+
+                executor.submit(futureTask);
+
+            }
 
         }
 
-        System.out.printf(toneText.toString());
+        AsyncLog task = new AsyncLog(logService, result.toString(), "200", SpeechTranscriberService.class.getName());
 
-        logService.setLogService(toneText.toString(), "200", ToneAnalyzerService.class.getName() );
-        logService.setLogService(result.toString(), "200", "SpeechTranscribir");
+        FutureTask<String> futureTask = new FutureTask<>(task,
+                "FutureTask is complete: " + task.hashCode());
 
+        executor.submit(futureTask);
 
+        System.out.println("END SERVICE");
         return transcript.toString();
+    }
+}
+
+class AsyncLog implements  Runnable {
+
+    private final LogService logService;
+
+    private String message;
+
+    public AsyncLog(LogService logService, String message, String status, String service) {
+        this.logService = logService;
+        this.message = message;
+        this.status = status;
+        this.service = service;
+    }
+
+    private String status;
+    private String service;
+
+
+    @Override
+    public void run() {
+        logService.setLogService(this.message, this.status, this.service);
     }
 }
