@@ -1,11 +1,10 @@
 package com.fs.springboot.dao;
 
+import com.fs.springboot.Auth;
 import com.fs.springboot.services.LogService;
 import com.fs.springboot.services.SpeechTranscriberService;
 import com.fs.springboot.services.ToneAnalyzerService;
 import com.ibm.cloud.sdk.core.http.HttpMediaType;
-import com.ibm.cloud.sdk.core.security.Authenticator;
-import com.ibm.cloud.sdk.core.security.IamAuthenticator;
 import com.ibm.watson.speech_to_text.v1.SpeechToText;
 import com.ibm.watson.speech_to_text.v1.model.RecognizeOptions;
 import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionAlternative;
@@ -28,7 +27,9 @@ import java.util.concurrent.FutureTask;
 @Repository("speechTranscriberDao")
 public class SpeechTranscriberAccessService implements SpeechTranscriberDao {
 
-    private final Authenticator authenticator = new IamAuthenticator("6bHdpbwdbEVx4EmuCIxQuRTV4KZtKL8UT8AjFgDkKFcm");
+    @Autowired
+    private Auth auth;
+
     private final ToneAnalyzerService toneAnalyzerService;
     private final LogService logService;
 
@@ -52,7 +53,7 @@ public class SpeechTranscriberAccessService implements SpeechTranscriberDao {
         fout.write(decodedByte);
         fout.close();
 
-        SpeechToText service = new SpeechToText(authenticator);
+        SpeechToText service = new SpeechToText(auth.getAuthenticator());
 
         File audio = new File(convertFile.getPath());
 
