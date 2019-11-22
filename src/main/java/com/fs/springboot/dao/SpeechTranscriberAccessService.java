@@ -46,7 +46,7 @@ public class SpeechTranscriberAccessService implements SpeechTranscriberDao {
 
         byte[] decodedByte = decoder.decode(file.split(",")[1]);
 
-        File convertFile = new File("/var/tmp/audio.webm");
+        File convertFile = new File("C:\\Users\\javieri.garcia\\Documents\\test.json");
         convertFile.createNewFile();
         FileOutputStream fout = new FileOutputStream(convertFile);
         fout.write(decodedByte);
